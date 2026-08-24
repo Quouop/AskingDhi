@@ -127,19 +127,19 @@
         "description": "任务智能体工具,异步执行你无法自主完成/任务量过大/需同步执行的任务,不阻塞主线程。",
         "use_case": "执行你无法自主完成/任务量过大/需同步执行时使用。任务在独立线程运行,完成后可通过 query 拉取完成报告。",
         "keywords": ["task","任务","help","智能体","agent","并发","concurrency","高效","efficient","异步","async"],
-        "params_example": "{\"name\": \"taskagent\", \"parameters\": {\"behavior\": \"add\", \"task\": \"任务需求\", \"message\": \"任务前提/描述\", \"path\": \"i:\\\\HenrryGim\\\\J.A.R.V.I.S\\\\src\"}}",
-        "note": "behavior: add=创建并异步执行任务(立即返回任务ID,不阻塞)/list=查看所有任务记录/query=拉取已完成任务的完成报告(主动发送给贾维斯后标记已读)/remove=结束任务。task 必填(任务完整需求)。message 选填(任务前提/描述)。path 选填(限定 TaskAgent 文件访问范围,文件类工具的路径参数必须在此范围内,防越权)。任务状态:waiting/running/completed/failed,记录于 taskagent_log.json。",
+        "params_example": "{\"name\": \"taskagent\", \"parameters\": {\"behavior\": \"add\", \"task\": \"任务需求\", \"message\": \"任务前提/描述\", \"path\": \"i:\\\\HenrryGim\\\\问渊AskingDhi\\\\src\"}}",
+        "note": "behavior: add=创建并异步执行任务(立即返回任务ID,不阻塞)/list=查看所有任务记录/query=拉取已完成任务的完成报告(主动发送给问渊AskingDhi后标记已读)/remove=结束任务。task 必填(任务完整需求)。message 选填(任务前提/描述)。path 选填(限定 TaskAgent 文件访问范围,文件类工具的路径参数必须在此范围内,防越权)。任务状态:waiting/running/completed/failed,记录于 taskagent_log.json。",
         "Accessible":["MainAgent"]
     },
     {
         "name": "task_complete",
         "ToolPath": "HandleTool/TAgentTool/task_complete.py",
         "is_builtin": true,
-        "description": "任务完成报告工具:TaskAgent 完成任务时必须调用,提交结构化成功描述,会主动发送给贾维斯。",
+        "description": "任务完成报告工具:TaskAgent 完成任务时必须调用,提交结构化成功描述,会主动发送给问渊AskingDhi。",
         "use_case": "TaskAgent 完成任务后,必须最后调用此工具,提交完成描述和产物。未调用则任务标记为失败。",
         "keywords": ["完成", "报告", "task", "complete", "结束", "结果", "submit"],
-        "params_example": "{\"name\": \"task_complete\", \"parameters\": {\"summary\": \"已完成读取并分析了main.py的结构\", \"artifacts\": [\"i:\\\\HenrryGim\\\\J.A.R.V.I.S\\\\main.py\"]}}",
-        "note": "summary 必填,一句话完成描述。artifacts 选填,产物文件路径列表。调用后任务状态变更为 completed,完成描述通过 taskagent query 主动发送给贾维斯。此工具仅 TaskAgent 可用,由系统拦截处理。",
+        "params_example": "{\"name\": \"task_complete\", \"parameters\": {\"summary\": \"已完成读取并分析了main.py的结构\", \"artifacts\": [\"i:\\\\HenrryGim\\\\问渊AskingDhi\\\\main.py\"]}}",
+        "note": "summary 必填,一句话完成描述。artifacts 选填,产物文件路径列表。调用后任务状态变更为 completed,完成描述通过 taskagent query 主动发送给问渊AskingDhi。此工具仅 TaskAgent 可用,由系统拦截处理。",
         "Accessible":["TaskAgent"]
     },
     {
@@ -160,7 +160,7 @@
         "description": "子智能体完成报告工具:subAgent 完成任务或达到 40 轮上限时必须调用,返回结构化进度报告给 TaskAgent。",
         "use_case": "subAgent 完成任务后必须最后调用,提交完成描述和进度。未调用则 subAgent 返回失败结果给 TaskAgent。",
         "keywords": ["完成", "报告", "progress", "subagent", "sub", "结束", "结果"],
-        "params_example": "{\"name\": \"subagent_complete\", \"parameters\": {\"summary\": \"已读取main.py并定位核心函数\", \"progress\": \"3/5\", \"next_step\": \"需要重构异常处理分支\", \"artifacts\": [\"i:\\\\HenrryGim\\\\J.A.R.V.I.S\\\\main.py\"]}}",
+        "params_example": "{\"name\": \"subagent_complete\", \"parameters\": {\"summary\": \"已读取main.py并定位核心函数\", \"progress\": \"3/5\", \"next_step\": \"需要重构异常处理分支\", \"artifacts\": [\"i:\\\\HenrryGim\\\\问渊AskingDhi\\\\main.py\"]}}",
         "note": "summary 必填(一句话完成描述)。progress 选填(完成进度如 '3/5')。next_step 选填(未完成时的下一步建议,便于 TaskAgent 派下一个 subAgent 接力)。artifacts 选填(产物文件路径列表)。此工具仅 subAgent 可用,由 SAgentTool/main.py 拦截处理,不走 ToolRouting。",
         "Accessible":["subAgent"]
     }

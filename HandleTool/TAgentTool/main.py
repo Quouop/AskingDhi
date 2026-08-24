@@ -67,7 +67,7 @@ def LoadSysForTaskAgent(FilePath: str, AgentName: str = "TaskAgent") -> List[Dic
     return Result
 
 
-# ========== 提示词动态加载（同贾维斯 {TOOL_LIST} 替换机制）==========
+# ========== 提示词动态加载（同AskingDhi {TOOL_LIST} 替换机制）==========
 def _build_tool_list_str():
     """加载 TaskAgent 可用的内置工具，格式化为 JSON 字符串"""
     tools = LoadSysForTaskAgent(TOOL_LIST_FILE, "TaskAgent")
@@ -360,7 +360,7 @@ def run(params: Dict[str, Any]) -> str:
     behavior:
         - add:    创建并异步执行任务（立即返回任务ID，不阻塞主线程）
         - list:   查看所有任务记录
-        - query:  拉取已完成/失败任务的完成报告（主动发送给贾维斯后标记已读）
+        - query:  拉取已完成/失败任务的完成报告（主动发送给AskingDhi后标记已读）
         - remove: 结束任务
     """
     try:
@@ -374,7 +374,7 @@ def run(params: Dict[str, Any]) -> str:
             if not task:
                 return "状态:Error, 缺少 task 参数"
 
-            # 1. 加载系统提示词（动态注入工具列表，同贾维斯机制）
+            # 1. 加载系统提示词（动态注入工具列表，同AskingDhi机制）
             sys_prompt = _load_taskagent_prompt()
             if not sys_prompt:
                 return "状态:Error, 无法加载 TaskAgent 提示词"
@@ -396,7 +396,7 @@ def run(params: Dict[str, Any]) -> str:
                     f"可用 behavior=query 拉取完成报告。")
 
         elif behavior == "query":
-            # 拉取已完成/失败且未通知的任务报告，标记已读（主动发送给贾维斯）
+            # 拉取已完成/失败且未通知的任务报告，标记已读（主动发送给AskingDhi）
             log = _load_log()
             unread = [r for r in log
                       if r.get("status") in ("completed", "failed") and not r.get("notified")]

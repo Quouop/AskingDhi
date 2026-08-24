@@ -41,7 +41,7 @@ messages = []
 full_response = ""
 
 #=========== 提示词加载 ===========
-SysPrompt = replace_placeholders("Prompt.jarvis.md",USER_NAME,USER_ID,SCRIPT_DIR,TOOL_LIST) #你的原有逻辑加载md提示词
+SysPrompt = replace_placeholders("Prompt.askingdhi.md",USER_NAME,USER_ID,SCRIPT_DIR,TOOL_LIST) #你的原有逻辑加载md提示词
 # ========== 长期记忆配置 ==========
 LONG_TERM_MEMORY_FILE = os.path.join(MEMORY_DIR, "long_term_memory.json")
 
@@ -103,7 +103,7 @@ def _format_core_memory_for_injection(core_memories):
     """把核心记忆格式化为 system 消息文本"""
     if not core_memories:
         return ""
-    lines = ["[核心记忆 - 贾维斯长期记忆]"]
+    lines = ["[核心记忆 - AskingDhi长期记忆]"]
     for mem in core_memories:
         parts = []
         if mem.get("title"):
@@ -529,8 +529,8 @@ def StreamDialogue(text):
             break
 
         print("\033[90m----------------------------------------\033[0m")
-        LABEL = "贾维斯："
-        CURSOR_LOGO = "[J.A.R.V.I.S.]"
+        LABEL = "AskingDhi："
+        CURSOR_LOGO = "[AskingDhi]"
         DRAGON_CHARS = ['-', '^', '\\', '|', '$', '&', '^', '|', '.']
         CURSOR_WIDTH = _display_len(CURSOR_LOGO)
         SAFETY_MARGIN = 2  # 预留几列，防止卡边界
@@ -600,7 +600,7 @@ def StreamDialogue(text):
 
                     c = DRAGON_CHARS[dragon_idx % len(DRAGON_CHARS)]
                     if NowToolName:
-                        hint_text = f" J.A.R.V.I.S. is using the {NowToolName}"
+                        hint_text = f" AskingDhi is using the {NowToolName}"
                     else:
                         hint_text = ""
 

@@ -4,12 +4,12 @@ from pathlib import Path
 
 def clean_project():
     """
-    J.A.R.V.I.S 自动清理脚本
+    AskingDhi 自动清理脚本
     用于清除项目中的 __pycache__ 目录与 file/ 目录下的 .wav 音频文件
     """
     project_root = Path(__file__).parent
     
-    print("[J.A.R.V.I.S] 正在启动系统清理协议...\n")
+    print("[AskingDhi] 正在启动系统清理协议...\n")
     
     # 1. 清理 __pycache__ 目录
     pycache_count = 0
@@ -41,7 +41,7 @@ def clean_project():
     else:
         print("[提示] 未找到 file/ 目录，跳过音频清理。")
         
-    print(f"\n[J.A.R.V.I.S] 清理协议执行完毕。")
+    print(f"\n[AskingDhi] 清理协议执行完毕。")
     print(f"[统计] 共移除 {pycache_count} 个缓存目录，{wav_count} 个音频文件。")
     print("[状态] 系统目录已恢复整洁，随时待命。")
 

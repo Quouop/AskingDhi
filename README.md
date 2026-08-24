@@ -1,6 +1,6 @@
-# J.A.R.V.I.S
+# AskingDhi
 
-> 一个基于 Python 的个人 AI 助手，灵感来自钢铁侠的贾维斯。支持语音输入、多智能体协作、工具扩展、长期记忆。
+> 一个基于 Python 的个人 AI 助手，支持语音输入、多智能体协作、工具扩展、长期记忆。
 
 ## 功能特性
 
@@ -23,8 +23,8 @@
 ### 安装
 
 ```bash
-git clone https://github.com/Quouop/J.A.R.V.I.S..git
-cd J.A.R.V.I.S
+git clone https://github.com/Quouop/AskingDhi.git
+cd AskingDhi
 pip install -r requirements.txt
 ```
 
@@ -121,7 +121,7 @@ python main.py
 
 ## 工具开发
 
-J.A.R.V.I.S 支持第三方工具扩展。开发规范详见 [工具开发手册](./teaching_you_how_to_make_a_tool_for_Jarvis(yes_this_project_really_call_this).md)。
+AskingDhi 支持第三方工具扩展。开发规范详见 [工具开发手册](./teaching_you_how_to_make_a_tool_for_问渊AskingDhi(yes_this_project_really_call_this).md)。
 
 核心要点：
 - 工具是 Python 文件，暴露 `run(params)` 函数，返回 `str`
@@ -132,10 +132,10 @@ J.A.R.V.I.S 支持第三方工具扩展。开发规范详见 [工具开发手册
 ## 项目结构
 
 ```
-J.A.R.V.I.S/
+AskingDhi/
 ├── main.py                    # 入口，键盘监听 + 工具安装
 ├── Call_Llm.py                # 主脑对话循环
-├── Prompt.jarvis.md           # 主脑系统提示词
+├── Prompt.askingdhi.md           # 主脑系统提示词
 ├── LoadSystemPrompy.py        # 提示词占位符替换
 ├── TouchFile.py               # 语音录制模块
 ├── asr.py                     # 语音识别
@@ -172,20 +172,20 @@ J.A.R.V.I.S/
 | `HandleTool/config.toml` | API Key 配置 |
 | `.bpath` | 路径黑名单（每行一条规则） |
 | `tool_list.json` | 工具注册表 |
-| `Prompt.jarvis.md` | 主脑系统提示词 |
+| `Prompt.askingdhi.md` | 主脑系统提示词 |
 
 ## 开发计划
 
 详见 [Challenge 清单](./Challenge_of_everyone(even_if_you_are_an_ai).md)：
 
-- **主动唤醒**：J.A.R.V.I.S 能定时自主执行任务（如凌晨自动点咖啡）
+- **主动唤醒**：AskingDhi 能定时自主执行任务（如凌晨自动点咖啡）
 - **CLI 闪屏修复**：切换功能时的闪烁问题仍需处理
 
 ## 贡献
 
 欢迎提交 Issue 和 Pull Request。
 
-开发新工具请阅读 [工具开发手册](./teaching_you_how_to_make_a_tool_for_Jarvis(yes_this_project_really_call_this).md)。
+开发新工具请阅读 [工具开发手册](./teaching_you_how_to_make_a_tool_for_问渊AskingDhi(yes_this_project_really_call_this).md)。
 
 ## License
 

@@ -1,6 +1,6 @@
 memory/
 conversation_history.json
-Prompt.jarvis.md
+Prompt.askingdhi.md
 .bpath
 HandleTool/ParsingTool.py
 HandleTool/TAgentTool/taskagent_log.json

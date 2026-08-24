@@ -188,7 +188,7 @@ def run(params):
 
             result_text = f"状态:200, 成功检索到 {len(top_matches)} 条相关记忆:\n\n"
             for i, (score, mem) in enumerate(top_matches, 1):
-                role = "先生" if mem.get("role") == "user" else "贾维斯"
+                role = "先生" if mem.get("role") == "user" else "AskingDhi"
                 summary = _build_summary_text(mem)
                 if len(summary) > 300:
                     summary = summary[:300] + "...[已截断]"

@@ -220,12 +220,12 @@ def on_release(key):
         return False
 
 if __name__ == "__main__":
-    print("[J.A.R.V.I.S] 系统已就绪。按住 Alt 键进行语音输入，按 ESC 键退出监听。")
+    print("[问渊AskingDhi] 系统已就绪。按住 Alt 键进行语音输入，按 ESC 键退出监听。")
     # 启动监听（非阻塞）
     listener = keyboard.Listener(on_press=on_press, on_release=on_release)
     listener.start()
     listener.join()  # 阻塞主线程直到监听结束
     
     # 退出监听后触发清理协议
-    print("\n[J.A.R.V.I.S] 随时为您待命先生")
+    print("\n[问渊AskingDhi] 随时为您待命先生")
     clean_project()

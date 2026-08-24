@@ -1,4 +1,4 @@
-# J.A.R.V.I.S 依赖
+# AskingDhi 依赖
 # 核心运行
 pynput>=1.7.6              # 键盘监听(语音输入触发)
 dashscope>=1.20.0         # 通义千问 LLM + ASR

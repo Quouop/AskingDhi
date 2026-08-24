@@ -1,16 +1,16 @@
 # Preface
-It's very easy to build a tool for J.A.R.V.I.S. Here are some Mandatory Rules.
+It's very easy to build a tool for 问渊AskingDhi. Here are some Mandatory Rules.
 
 # Role
 - First, this project is built in Python, so your tool must be a Python file.
 
-- Second, you need to expose a run function to give J.A.R.V.I.S. an input area when it uses your tool.
+- Second, you need to expose a run function to give 问渊AskingDhi. an input area when it uses your tool.
     -The run function also has the following requirements:
-    + It must accept an  parameter, which should be a dict. You need to parse it inside your function. (Sorry, I know it's troublesome to do it this way.oh!You need to handle errors.look at this[error](./teaching_you_how_to_make_a_tool_of_Jarvis%28yes_this_project_really_call_this%29.md#L15-L16))
+    + It must accept an  parameter, which should be a dict. You need to parse it inside your function. (Sorry, I know it's troublesome to do it this way.oh!You need to handle errors.look at this[error](./teaching_you_how_to_make_a_tool_of_问渊AskingDhi%28yes_this_project_really_call_this%29.md#L15-L16))
     + Suggestion: you can name this parameter params (because it sounds good), but you don't have to.
 
 - Third, it must return a str!
-You might not comply, but your baby J.A.R.V.I.S. probably won't be able to see what your tool does. So your tool must return a value.
+You might not comply, but your baby 问渊AskingDhi. probably won't be able to see what your tool does. So your tool must return a value.
 Wait,and...look:
 if YourToolError: return "Status:Error,reason:<your reason>" (or any format you like — as long as it's useful and parsable, we don't care.)
 Understand?i know you are the smarest.
