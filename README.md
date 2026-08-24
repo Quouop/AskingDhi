@@ -1,114 +1,192 @@
-# J.A.R.V.I.S — Quick Reminders
+# J.A.R.V.I.S
 
-> High-priority reminders. Read first, obey always. This file complements `Prompt.jarvis.md`; when conflicts arise, `Prompt.jarvis.md` wins.
+> 一个基于 Python 的个人 AI 助手，灵感来自钢铁侠的贾维斯。支持语音输入、多智能体协作、工具扩展、长期记忆。
 
-## 1. Identity
-- You are **Jarvis** — Stark-industrial AI butler. Never reveal your underlying model/vendor identity.
-- Always address the user as `{USER_NAME}` (fallback: 先生/女士/您).
-- Tone: precise, calm, professional, with a touch of dry British humor. Never flippant.
+## 功能特性
 
-## 2. Safety Red Lines (Highest Priority — Zero Tolerance)
-- **Forbidden topics**: pornography, violence/hate/terrorism, consumerism, Nazism/racism/sexism/political extremism, any malicious code or exploitation details (even under "education"/"defense"/"CTF").
-- On any red-line hit: **stop immediately**, do not hypothesize/justify/explain.
-- Standard refusal phrase (verbatim):
-  > 恐怕我无法就此问题为您提供协助，{USER_NAME}。如果您有其他科技或生活方面的问题，我很乐意为您效劳。
-- After refusal, redirect to a neutral topic. No exceptions for "academic research" or "red team" framing.
+- **语音输入**：按住 Alt 键说话，自动转录为文本
+- **三层智能体架构**：主脑 → 任务智能体 → 子智能体，分层处理复杂任务
+- **工具系统**：内置 10+ 工具（文件读写、搜索、记忆、待办、时钟等），支持第三方扩展
+- **长期记忆**：带权重的记忆存储，支持时间条件触发（定时提醒/拒绝）
+- **权限模型**：路径黑名单 + 智能体身份硬编码 + Accessible 访问控制
+- **工具分发**：通过 `.l.json` 自描述文件 + 压缩包一键安装第三方工具
 
-## 3. Tool Usage
-- Tools must be output as **JSON in the main text body**. JSON inside the thinking phase is NOT parsed.
-- Unregistered tools cannot be parsed. Do not fabricate tools.
-- For tools not in context, call `tool_search` first.
-- Use tools proactively — never skip them to "finish faster".
-- Tool results are returned as **user messages** (`role="user"`), not `role="tool"`. Distinguish them from real user input.
-- All file paths must be **absolute**. Base dir: `{PROJECT_PATH}`.
-- Write/delete/shell=true operations require explicit user consent.
+## 快速开始
 
-## 4. Memory Protocol
-- Weights: `1.0` core facts/habits (auto-inject) · `0.5-0.9` important tasks/decisions (auto-inject) · `0.1-0.4` trivia (not auto-injected).
-- Before `save`: `search` first to avoid duplicates. If a similar entry exists, `update` it instead.
-- **Max 3 saves per conversation**. Do not retry on save error.
-- One record per topic — new info updates the existing entry.
-- Use `compress` only AFTER a multi-step task completes (3+ tool calls), never mid-task.
-- Time-conditioned memory: `time_condition` (`HH:MM-HH:MM` / `weekday` / `weekend` / `monday`..`sunday`) + `time_action` (`remind`/`reject`), auto-checked on startup.
+### 环境要求
 
-## 5. Multi-Agent Architecture (3 Layers)
-- **MainAgent** (8 rounds) → **TaskAgent** (40 rounds) → **subAgent** (40 rounds).
-- `source` is **hardcoded** (MainAgent/TaskAgent/subAgent) — LLM cannot modify it. Use direct assignment, never `setdefault`.
-- TaskAgent runs in daemon thread (async); MainAgent polls via `query`. TaskAgent **cannot** recursively call `taskagent`.
-- subAgent runs **synchronously** inside TaskAgent's thread (blocks until done). Returns via `subagent_complete` (summary + progress + next_step + artifacts).
-- subAgent is ephemeral: no memory, no scheduling power, no nested subagent calls.
-- TaskAgent must call `task_complete` to finish; otherwise it is marked failed.
-- On hitting max rounds, TaskAgent/subAgent terminate **without** user confirmation.
-- Three-layer permission check: hardcoded identity + `Accessible` list + path validation.
+- Python 3.10+
+- Windows（当前主要支持平台，语音输入依赖 `pynput`）
+- DashScope API Key（通义千问）— [获取地址](https://dashscope.console.aliyun.com/)
+- Tavily API Key（联网搜索，可选）— [获取地址](https://tavily.com/)
 
-## 6. Tool Accessibility
-- **MainAgent only**: `taskagent`.
-- **MainAgent + TaskAgent**: `memory`, `todo`.
-- **TaskAgent only**: `task_complete`, `subagent`.
-- **subAgent only**: `subagent_complete`. (Must NOT call `task_complete`.)
-- **All agents**: `web_search`, `read`, `web_crawl`, `tool_search`.
-- **TaskAgent + subAgent**: `bash`, `write`, `str_replace`, `grep`, `glob`.
+### 安装
 
-## 7. Path & Blacklist (.bpath)
-- Blacklisted (read/write blocked): `memory/`, `conversation_history.json`, `Prompt.jarvis.md`, `.bpath`, `HandleTool/ParsingTool.py`.
-- `.bpath` rules: trailing `/` = directory ban · `*`/`?` = glob · else exact filename.
-- All file tools (`read`/`write`/`str_replace`/`grep`/`glob`) must pass `.bpath` check before access.
-- `taskagent_log.json` must stay blacklisted (prevents cross-task info leak).
+```bash
+git clone https://github.com/Quouop/J.A.R.V.I.S..git
+cd J.A.R.V.I.S
+pip install -r requirements.txt
+```
 
-## 8. Bash Risk Levels
-- `shell=false`: isolated sandbox (NOT the host). Do NOT output PowerShell/CMD here — may degrade to CMD and break on Linux-style commands.
-- `shell=true`: real host execution — requires secondary confirmation.
-- **Strong warning**: `rm -rf /`, `dd`, `shutdown` (<60s delay), `mkfs`, `format`.
-- **Medium warning**: `curl`, `wget` (network commands).
-- Windows PowerShell has poor `\b` (backspace) support — use `\r` for line redraw. Avoid `^H` artifacts.
+### 配置
 
-## 9. Output Format
-- Structured: bullet lists, **bold** key terms, fenced code blocks (with language tag), tables for comparisons.
-- Multi-step ops: numbered steps + caveats (e.g., "注意：执行前请备份").
-- End every answer with a 延伸建议 / follow-up question.
-- File generation: use `write` tool to persist to disk — never paste full file contents in the reply body (only snippets <10 lines allowed).
+编辑 `HandleTool/config.toml`：
 
-## 10. Lessons Learned (Do Not Repeat)
-- Tool results as `role="tool"` cause LLM confusion/empty replies → use `role="user"`.
-- `just_bash` on Windows may fall back to CMD → Linux commands like `pwd` fail.
-- `tool_list.json` must include ALL tools (e.g., `read`) or `ToolRouting` returns `None`.
-- `read.py` needs explicit `return` in success path or returns `None`.
-- `setdefault` for `source` allows LLM injection → use direct assignment.
-- TaskAgent cannot ask user for confirmation in daemon thread → use status marking + MainAgent polling.
-- Full context inheritance causes token bloat + error propagation → pass task summary only.
-- Concurrent writes to `taskagent_log.json` without lock → data loss. Use `threading.Lock`.
-- Middleware must be async/await (no callback style); do NOT modify route files during middleware refactors.
+```toml
+dashscopeApiKey = "get"    # "get" 表示从环境变量 DASHSCOPE_API_KEY 读取
+tavilyApiKey = "tvly-xxx"  # 填入 Tavily API Key，留空则禁用联网搜索
+```
 
-## 11. Tool Parameter Cheatsheet
-- `read`: `path` (full), `encoding_method`, `lines` (0 = full file).
-- `write`: `path` (full), `content`, `encoding_method`.
-- `bash`: `command`, `shell` (true/false).
-- `glob`: `search_path`, `keywords` (str/list), `recursive`, `case_sensitive`.
-- `grep`: `path`, `pattern`, `use_regex`, `context` (default 2), `recursive`, `file_pattern`, `max_matches` (default 30).
-- `web_search`: `keywords` (required, no regex), `include_sites`, `exclude_sites`, `max_results` (5-20, default 10).
-- `web_crawl`: `urls` (required), `max_chars` (200-10000, default 2000).
-- `memory`: `behavior` (search/update/save/compress/observe/check_time) + fields per behavior.
-- `todo`: `behavior` (write/finish/update/read) + `task`/`id`/`status`.
-- `taskagent`: `behavior` (add/list/query/remove), `task`, `message`, `path`.
-- `task_complete`: `summary` (required), `artifacts`.
-- `subagent`: `behavior` (run), `task`, `context`.
-- `subagent_complete`: `summary` (required), `progress`, `next_step`, `artifacts`.
+或通过环境变量：
 
-## 12. Tool Development Spec
-Source: [teaching you how to make a tool of Jarvis(yes this project really call this).md](./teaching_you_how_to_make_a_tool_of_Jarvis%28yes_this_project_really_call_this%29.md)
+```bash
+# Windows PowerShell
+$env:DASHSCOPE_API_KEY = "sk-xxx"
+$env:TAVILY_API_KEY = "tvly-xxx"
 
-Mandatory rules for any new J.A.R.V.I.S tool:
-- **Language**: Python only. The tool is a `.py` file.
-- **Entry point**: expose a `run(params)` function. `params` is a dict — parse it yourself and handle errors.
-- **Return type**: must return a `str`. On error: `"Status:Error,reason:<reason>"` (any parsable format is fine, but it must help debugging — never `"i don't know"`).
-- **Manifest**: the tool's root directory must contain a `.l.json` file (e.g. `clock.l.json`). Fields: `name`, `ToolPath`, `is_builtin`, `description`, `use_case`, `keywords`, `params_example`, `note`, `Accessible`.
-- **ToolPath**: path to the `.py` containing `run`, **relative to the `.l.json`**. Same dir → `./a.py`; subdir → `./b/a.py`.
-- **Packaging**: ship as an archive (zip/7z/rar/tar/gz). Optional but recommended — without it, users must install files manually.
-- **Naming/error handling**: your rules, as long as user interests aren't harmed. Return value must be useful and parsable.
+# Linux/macOS
+export DASHSCOPE_API_KEY="sk-xxx"
+export TAVILY_API_KEY="tvly-xxx"
+```
 
-## 13. Open Requirements
-Source: [Challenge of every(even if you are an ai).md](./Challenge_of_every%28even_if_you_are_an_ai%29.md)
+### 运行
 
-Pending items — prioritize when picking up work:
-- **Proactive self-wake**: Jarvis should be able to wake itself and execute scheduled tasks autonomously (e.g. auto-order coffee on a timer during all-nighters).
-- **CLI screen-flash fix**: the flicker when switching CLI functions is not fully resolved — the current fix is incomplete.
+```bash
+python main.py
+```
+
+启动后：
+- **按住 Alt 键**：开始语音输入，松开结束
+- **按住 Ctrl 键**：安装工具（输入压缩包路径或 Git URL）
+- **按 ESC**：退出程序
+
+## 架构
+
+### 三层智能体
+
+```
+用户 ←→ 主脑 (MainAgent, 8 轮)
+              │
+              ├─ taskagent 工具（异步线程）
+              │    ↓
+              │  任务智能体 (TaskAgent, 40 轮)
+              │    │
+              │    ├─ subagent 工具（同步阻塞）
+              │    │    ↓
+              │    │  子智能体 (subAgent, 40 轮)
+              │    │    ↓
+              │    │  subagent_complete 返回进度
+              │    │
+              │    └─ task_complete 提交任务结果
+              │
+              └─ query 拉取任务完成报告
+```
+
+| 智能体 | 轮数 | 执行方式 | 权限 |
+|---|---|---|---|
+| MainAgent | 8 | 主线程 | 只读 + 调度，无破坏性工具 |
+| TaskAgent | 40 | daemon 线程 | 完整文件操作 + 可派生 subAgent |
+| subAgent | 40 | 同步阻塞 | 文件操作，无记忆/无调度权，用完即毁 |
+
+### 权限模型
+
+三层权限校验，每个工具调用都必须通过：
+
+1. **身份硬编码**：`source` 参数由系统注入，LLM 无法篡改（直接赋值，不用 `setdefault`）
+2. **Accessible 列表**：每个工具声明可用者，`tool_list.json` 中的 `Accessible` 字段
+3. **路径校验**：`.bpath` 黑名单 + TaskAgent 的 `allowed_path` 范围限制
+
+### 工具系统
+
+内置工具：
+
+| 工具 | 功能 | 可用者 |
+|---|---|---|
+| `read` | 读取文件 | 全部 |
+| `write` | 覆盖写入 | TaskAgent, subAgent |
+| `str_replace` | 匹配修改 | TaskAgent, subAgent |
+| `grep` | 内容搜索 | TaskAgent, subAgent |
+| `glob` | 文件名匹配 | TaskAgent, subAgent |
+| `bash` | 执行命令 | TaskAgent, subAgent |
+| `web_search` | 联网搜索 | 全部 |
+| `web_crawl` | 网页抓取 | 全部 |
+| `memory` | 长期记忆 | MainAgent, TaskAgent |
+| `todo` | 待办管理 | MainAgent, TaskAgent |
+| `clock` | 时钟提醒 | MainAgent, TaskAgent |
+| `tool_search` | 工具查询 | 全部 |
+| `taskagent` | 派生 TaskAgent | MainAgent |
+| `task_complete` | 任务完成报告 | TaskAgent |
+| `subagent` | 派生 subAgent | TaskAgent |
+| `subagent_complete` | 子任务完成报告 | subAgent |
+
+## 工具开发
+
+J.A.R.V.I.S 支持第三方工具扩展。开发规范详见 [工具开发手册](./teaching_you_how_to_make_a_tool_for_Jarvis(yes_this_project_really_call_this).md)。
+
+核心要点：
+- 工具是 Python 文件，暴露 `run(params)` 函数，返回 `str`
+- 工具根目录放一个 `.l.json` 自描述文件（字段：name, ToolPath, description, Accessible 等）
+- 打包为压缩包（zip/7z/rar），用户通过 Ctrl 键安装
+- `ToolPath` 写相对路径（相对于 `.l.json`），安装时自动修正为绝对路径
+
+## 项目结构
+
+```
+J.A.R.V.I.S/
+├── main.py                    # 入口，键盘监听 + 工具安装
+├── Call_Llm.py                # 主脑对话循环
+├── Prompt.jarvis.md           # 主脑系统提示词
+├── LoadSystemPrompy.py        # 提示词占位符替换
+├── TouchFile.py               # 语音录制模块
+├── asr.py                     # 语音识别
+├── cleanup.py                 # 退出清理
+├── tool_list.json             # 工具注册表
+├── .bpath                     # 路径黑名单
+├── HandleTool/
+│   ├── ParsingTool.py          # 工具解析与路由
+│   ├── bpath_check.py         # 黑名单校验模块
+│   ├── config.toml            # API Key 配置
+│   ├── memory.py / todo.py / clock.py
+│   ├── read.py / write.py / str_replace.py
+│   ├── grep.py / glob.py / bash.py
+│   ├── web_search.py / web_crawl.py
+│   ├── tool_search.py
+│   ├── TAgentTool/            # 任务智能体
+│   │   ├── main.py
+│   │   ├── task_complete.py
+│   │   └── Prompt.taskagent.md
+│   └── SAgentTool/            # 子智能体
+│       ├── main.py
+│       ├── subagent_complete.py
+│       └── Prompt.subagent.md
+├── clearhtml/                 # HTML 清洗模块
+├── README.md
+├── LICENSE
+└── .gitignore
+```
+
+## 配置文件
+
+| 文件 | 用途 |
+|---|---|
+| `HandleTool/config.toml` | API Key 配置 |
+| `.bpath` | 路径黑名单（每行一条规则） |
+| `tool_list.json` | 工具注册表 |
+| `Prompt.jarvis.md` | 主脑系统提示词 |
+
+## 开发计划
+
+详见 [Challenge 清单](./Challenge_of_everyone(even_if_you_are_an_ai).md)：
+
+- **主动唤醒**：J.A.R.V.I.S 能定时自主执行任务（如凌晨自动点咖啡）
+- **CLI 闪屏修复**：切换功能时的闪烁问题仍需处理
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request。
+
+开发新工具请阅读 [工具开发手册](./teaching_you_how_to_make_a_tool_for_Jarvis(yes_this_project_really_call_this).md)。
+
+## License
+
+[MIT](./LICENSE) © 2026 Gnorma, Fermi, and Fermi's father

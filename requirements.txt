@@ -1,0 +1,14 @@
+# J.A.R.V.I.S 依赖
+# 核心运行
+pynput>=1.7.6              # 键盘监听(语音输入触发)
+dashscope>=1.20.0         # 通义千问 LLM + ASR
+pyaudio>=0.2.13            # 语音录制
+tavily-python>=0.4.0       # 联网搜索 + 网页抓取
+
+# 工具安装(可选,按需安装)
+# py7zr>=0.20.0             # 解压 .7z 工具包
+# rarfile>=4.0              # 解压 .rar 工具包
+
+# bash 工具沙箱(若使用 bash 工具)
+# hydra-sandbox>=0.1.0     # Python 沙箱执行
+# just-bash>=0.1.0         # 真实 shell 执行
