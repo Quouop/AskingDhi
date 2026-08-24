@@ -24,7 +24,7 @@ TOOL_LIST = json.dumps(builtin_only, ensure_ascii=False, indent=4)
 os.makedirs(MEMORY_DIR, exist_ok=True)
 
 # ========== API 配置 ==========
-with open("config.toml", "rb") as toml_file:
+with open("./HandleTool/config.toml", "rb") as toml_file:
     config = tomllib.load(toml_file)
 api_key = config["dashscopeApiKey"]
 if api_key == "get":
@@ -35,8 +35,8 @@ if not dashscope.api_key:
     raise ValueError("请设置环境变量 DASHSCOPE_API_KEY")
 
 # ========== 全局变量 ==========
-USER_NAME = "先生"
-USER_ID = "托尼·斯塔克(Tony Stark)"
+USER_NAME = "主人"
+USER_ID = "上班族"
 messages = []
 full_response = ""
 
