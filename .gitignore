@@ -1,0 +1,89 @@
+# ========== Python ==========
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.Python
+build/
+dist/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ========== 虚拟环境 ==========
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ========== 项目运行时数据(用户私密,不入库) ==========
+# 对话历史与用户记忆
+conversation_history.json
+memory/
+
+# 待办与任务记录
+todo.json
+HandleTool/TAgentTool/taskagent_log.json
+
+# 沙箱日志
+HandleTool/logs/
+
+# ========== 模型文件(体积大,不入库,用户自行下载) ==========
+HandleTool/model/
+
+# ========== 项目根目录测试用 py 文件(本地测试,不入库) ==========
+# 根目录下纯数字/空名命名的临时测试文件(如 .py / 1.py / 2.py / test_*.py)
+/[0-9]*.py
+/test*.py
+/_*.py
+.py
+# ========== 环境与密钥 ==========
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# ========== IDE / 编辑器 ==========
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# ========== 操作系统 ==========
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+ehthumbs.db
+ehthumbs_vista.db
+
+# ========== 测试与覆盖率 ==========
+.tox/
+.coverage
+.cache
+.pytest_cache/
+htmlcov/
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/

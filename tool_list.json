@@ -1,0 +1,167 @@
+[
+    {
+        "name": "memory",
+        "ToolPath": "HandleTool/memory.py",
+        "is_builtin": true,
+        "description": "长期记忆管理：检索/修改/新增/归档/行为观察/时间条件检查。",
+        "use_case": "记住用户偏好、检索历史事件、归档压缩上下文、学习用户习惯、设置到点提醒/拒绝时使用。",
+        "keywords": ["记忆", "search", "save", "compress", "observe", "check_time", "习惯", "归档", "历史", "提醒", "定时", "时间"],
+        "params_example": "{\"name\": \"memory\", \"parameters\": {\"behavior\": \"save\", \"content\": \"晚上10点后不执行危险命令\", \"time_condition\": \"22:00-06:00\", \"time_action\": \"reject\"}}",
+        "note": "behavior: search/update/save/compress/observe/check_time。3次observe同一偏好→自动转习惯。time_condition 支持 'HH:MM-HH:MM'(跨天如22:00-06:00)/'weekday'/'weekend'/'monday'/'HH:MM'，逗号分隔多条件；time_action: remind=到点提醒 / reject=到点拒绝。启动时自动 check_time 注入。",
+        "Accessible":["MainAgent","TaskAgent"]
+    },
+    {
+        "name": "todo",
+        "ToolPath": "HandleTool/todo.py",
+        "is_builtin": true,
+        "description": "任务管理：新增/完成/更新/查看待办任务。",
+        "use_case": "拆解复杂任务、记录进度、管理待办事项时使用。",
+        "keywords": ["任务", "待办", "todo", "计划", "进度", "清单", "完成"],
+        "params_example": "{\"name\": \"todo\", \"parameters\": {\"behavior\": \"write\", \"task\": \"读取main.py\"}}",
+        "note": "behavior: write=新增/finish=完成/update=更新状态/read=查看。支持status: pending/doing/done/failed。",
+        "Accessible":["MainAgent","TaskAgent"]
+    },
+    {
+        "name": "web_search",
+        "ToolPath": "HandleTool/web_search.py",
+        "is_builtin": true,
+        "description": "联网搜索：按关键词在互联网检索信息，支持站点白名单/黑名单和返回数量限制。",
+        "use_case": "需要查询实时资讯、技术文档、外部资料、最新事件等本地文件无法提供的信息时使用。",
+        "keywords": ["搜索", "联网", "网络", "查询", "互联网", "web", "search", "资料", "新闻", "实时", "在线"],
+        "params_example": "{\"name\": \"web_search\", \"parameters\": {\"keywords\": [\"python 异步教程\"], \"exclude_sites\": [\"pinterest.com\"], \"max_results\": 10}}",
+        "note": "keywords 必需(str或list，纯文本不做正则)；include_sites=只搜这些站点；exclude_sites=排除这些站点；max_results 5-20 默认10。两者不能含同一站点。",
+        "Accessible":["MainAgent","TaskAgent","subAgent"]
+    },
+    {
+        "name": "read",
+        "ToolPath": "HandleTool/read.py",
+        "is_builtin": true,
+        "description": "读取本地文件内容。支持指定编码和行数截断。",
+        "use_case": "查看代码、配置文件、日志内容时使用。",
+        "keywords": ["读取", "文件", "内容", "查看", "代码", "配置", "日志", "read"],
+        "params_example": "{\"name\": \"read\", \"parameters\": {\"path\": \"完整路径\", \"lines\": 0}}",
+        "note": "lines=0 或不传读取整个文件（超2000字符自动截断）。lines>0 只读前N行。",
+        "Accessible":["MainAgent","TaskAgent","subAgent"]
+    },
+    {
+        "name": "web_crawl",
+        "ToolPath": "HandleTool/web_crawl.py",
+        "is_builtin": true,
+        "description": "网页爬取：抓取指定 URL 列表的正文内容（基于 Tavily extract）。",
+        "use_case": "已知具体网址，需要提取页面正文内容时使用。常配合 web_search 二次深读。",
+        "keywords": ["爬取", "抓取", "网页", "url", "内容", "提取", "crawl", "extract", "页面", "正文"],
+        "params_example": "{\"name\": \"web_crawl\", \"parameters\": {\"urls\": [\"https://en.wikipedia.org/wiki/Python_(programming_language)\"], \"max_chars\": 2000}}",
+        "note": "urls 必需(str或list)；max_chars 每条结果截断长度，默认2000，范围200-10000。返回 url + 正文内容。",
+        "Accessible":["MainAgent","TaskAgent","subAgent"]
+    },
+    {
+        "name": "tool_search",
+        "ToolPath": "HandleTool/tool_search.py",
+        "is_builtin": true,
+        "description": "搜索可用工具的用法和参数说明。非内置工具不会出现在上下文里，需要用此工具查询。",
+        "use_case": "不确定该用什么工具、想了解某工具的参数格式、或需要使用上下文未列出的工具时使用。",
+        "keywords": ["工具", "搜索", "查询", "用法", "参数", "帮助", "tool_search"],
+        "params_example": "{\"name\": \"tool_search\", \"parameters\": {\"source\": \"MainAgent\", \"query\": \"我想写入文件\"}}",
+        "note": "source 指定调用来源(MainAgent/TaskAgent/subAgent),只返回该来源在 Accessible 字段中可用的工具;未传则只暴露内置工具。query 留空时返回该来源所有可用工具列表。返回最匹配的工具名+描述+参数示例。",
+        "Accessible":["MainAgent","TaskAgent","subAgent"]
+    },
+    {
+        "name": "bash",
+        "ToolPath": "HandleTool/bash.py",
+        "is_builtin": true,
+        "description": "执行系统命令（Shell/CMD）。支持沙箱模式和真实执行模式。",
+        "use_case": "需要运行系统命令、安装包、查看目录、执行脚本时使用。",
+        "keywords": ["命令", "执行", "shell", "cmd", "系统", "终端", "安装", "运行", "脚本"],
+        "params_example": "{\"name\": \"bash\", \"parameters\": {\"command\": \"ls -la\", \"shell\": false}}",
+        "note": "shell=false 走沙箱（安全），shell=true 走真实环境（需确认）。危险命令会触发警告。",
+        "Accessible":["TaskAgent","subAgent"]
+    },
+    {
+        "name": "write",
+        "ToolPath": "HandleTool/write.py",
+        "is_builtin": true,
+        "description": "覆盖写入文件。直接将内容覆盖写入指定路径。",
+        "use_case": "创建新文件、覆盖修改文件内容时使用。",
+        "keywords": ["写入", "文件", "创建", "保存", "覆盖", "write"],
+        "params_example": "{\"name\": \"write\", \"parameters\": {\"path\": \"完整路径\", \"content\": \"文件内容\"}}",
+        "note": "会覆盖原文件。父目录不存在时自动创建。生成文件内容必须用此工具落盘，不要粘贴在回复中。",
+        "Accessible":["TaskAgent","subAgent"]
+    },
+    {
+        "name": "str_replace",
+        "ToolPath": "HandleTool/str_replace.py",
+        "is_builtin": true,
+        "description": "精确匹配并替换/插入/删除文件中的文本片段。",
+        "use_case": "修改文件中的某一段代码或文本，不需要重写整个文件时使用。",
+        "keywords": ["替换", "修改", "编辑", "插入", "删除", "片段", "str_replace"],
+        "params_example": "{\"name\": \"str_replace\", \"parameters\": {\"behavior\": \"edit\", \"path\": \"路径\", \"old_str\": \"旧文本\", \"new_str\": \"新文本\"}}",
+        "note": "behavior: edit=替换 / insert=锚点后插入 / delete=删除。比 write 更精确，适合小改动。",
+        "Accessible":["TaskAgent","subAgent"]
+    },
+    {
+        "name": "grep",
+        "ToolPath": "HandleTool/grep.py",
+        "is_builtin": true,
+        "description": "在文件或目录中搜索文本内容（支持正则）。",
+        "use_case": "搜索代码中的关键词、查找函数定义、定位某段逻辑时使用。",
+        "keywords": ["搜索", "查找", "grep", "内容", "关键词", "正则", "匹配", "代码"],
+        "params_example": "{\"name\": \"grep\", \"parameters\": {\"pattern\": \"keyboard\", \"path\": \"目录或文件路径\"}}",
+        "note": "支持目录搜索和文件搜索。默认返回匹配行+上下文2行。max_matches控制返回数量。",
+        "Accessible":["TaskAgent","subAgent"]
+    },
+    {
+        "name": "glob",
+        "ToolPath": "HandleTool/glob.py",
+        "is_builtin": true,
+        "description": "按文件名模式匹配查找文件。",
+        "use_case": "按扩展名找文件、查找特定命名的文件时使用。",
+        "keywords": ["文件", "查找", "匹配", "glob", "路径", "扩展名", "文件名"],
+        "params_example": "{\"name\": \"glob\", \"parameters\": {\"pattern\": \"*.py\", \"search_path\": \"目录路径\"}}",
+        "note": "pattern支持通配符。recursive=true递归搜索子目录。返回完整路径。",
+        "Accessible":["TaskAgent","subAgent"]
+    },
+    {
+        "name": "taskagent",
+        "ToolPath": "HandleTool/TAgentTool/main.py",
+        "is_builtin": true,
+        "description": "任务智能体工具,异步执行你无法自主完成/任务量过大/需同步执行的任务,不阻塞主线程。",
+        "use_case": "执行你无法自主完成/任务量过大/需同步执行时使用。任务在独立线程运行,完成后可通过 query 拉取完成报告。",
+        "keywords": ["task","任务","help","智能体","agent","并发","concurrency","高效","efficient","异步","async"],
+        "params_example": "{\"name\": \"taskagent\", \"parameters\": {\"behavior\": \"add\", \"task\": \"任务需求\", \"message\": \"任务前提/描述\", \"path\": \"i:\\\\HenrryGim\\\\J.A.R.V.I.S\\\\src\"}}",
+        "note": "behavior: add=创建并异步执行任务(立即返回任务ID,不阻塞)/list=查看所有任务记录/query=拉取已完成任务的完成报告(主动发送给贾维斯后标记已读)/remove=结束任务。task 必填(任务完整需求)。message 选填(任务前提/描述)。path 选填(限定 TaskAgent 文件访问范围,文件类工具的路径参数必须在此范围内,防越权)。任务状态:waiting/running/completed/failed,记录于 taskagent_log.json。",
+        "Accessible":["MainAgent"]
+    },
+    {
+        "name": "task_complete",
+        "ToolPath": "HandleTool/TAgentTool/task_complete.py",
+        "is_builtin": true,
+        "description": "任务完成报告工具:TaskAgent 完成任务时必须调用,提交结构化成功描述,会主动发送给贾维斯。",
+        "use_case": "TaskAgent 完成任务后,必须最后调用此工具,提交完成描述和产物。未调用则任务标记为失败。",
+        "keywords": ["完成", "报告", "task", "complete", "结束", "结果", "submit"],
+        "params_example": "{\"name\": \"task_complete\", \"parameters\": {\"summary\": \"已完成读取并分析了main.py的结构\", \"artifacts\": [\"i:\\\\HenrryGim\\\\J.A.R.V.I.S\\\\main.py\"]}}",
+        "note": "summary 必填,一句话完成描述。artifacts 选填,产物文件路径列表。调用后任务状态变更为 completed,完成描述通过 taskagent query 主动发送给贾维斯。此工具仅 TaskAgent 可用,由系统拦截处理。",
+        "Accessible":["TaskAgent"]
+    },
+    {
+        "name": "subagent",
+        "ToolPath": "HandleTool/SAgentTool/main.py",
+        "is_builtin": true,
+        "description": "子智能体工具,继承父智能体提供的上下文摘要同步执行子任务,用完即毁。",
+        "use_case": "TaskAgent 需要拆解子任务、委派执行单元时使用。同步阻塞执行,TaskAgent 会等待 subAgent 返回结果再继续下一轮。",
+        "keywords": ["sub","子智能体","委派","拆解","执行单元","subagent","同步","阻塞"],
+        "params_example": "{\"name\": \"subagent\", \"parameters\": {\"behavior\": \"run\", \"task\": \"子任务需求\", \"context\": \"父智能体提供的任务摘要/必要上下文\"}}",
+        "note": "behavior: run=同步阻塞执行子任务。task 必填(子任务需求)。context 选填(父智能体提供的任务摘要/必要数据,用于无冷启动)。subAgent 在 TaskAgent 线程内同步执行 40 轮 React 上限,超时直接返回当前进度(不询问)。subAgent 用完即毁,无记忆无调度权。完成后通过 subagent_complete 返回 summary+progress+next_step+artifacts 给 TaskAgent。",
+        "Accessible":["TaskAgent"]
+    },
+    {
+        "name": "subagent_complete",
+        "ToolPath": "HandleTool/SAgentTool/subagent_complete.py",
+        "is_builtin": true,
+        "description": "子智能体完成报告工具:subAgent 完成任务或达到 40 轮上限时必须调用,返回结构化进度报告给 TaskAgent。",
+        "use_case": "subAgent 完成任务后必须最后调用,提交完成描述和进度。未调用则 subAgent 返回失败结果给 TaskAgent。",
+        "keywords": ["完成", "报告", "progress", "subagent", "sub", "结束", "结果"],
+        "params_example": "{\"name\": \"subagent_complete\", \"parameters\": {\"summary\": \"已读取main.py并定位核心函数\", \"progress\": \"3/5\", \"next_step\": \"需要重构异常处理分支\", \"artifacts\": [\"i:\\\\HenrryGim\\\\J.A.R.V.I.S\\\\main.py\"]}}",
+        "note": "summary 必填(一句话完成描述)。progress 选填(完成进度如 '3/5')。next_step 选填(未完成时的下一步建议,便于 TaskAgent 派下一个 subAgent 接力)。artifacts 选填(产物文件路径列表)。此工具仅 subAgent 可用,由 SAgentTool/main.py 拦截处理,不走 ToolRouting。",
+        "Accessible":["subAgent"]
+    }
+]
