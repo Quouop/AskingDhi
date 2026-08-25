@@ -3,7 +3,7 @@ from tavily import AsyncTavilyClient
 import asyncio
 import os
 import tomllib
-
+from clearhtml import 
 # 加载配置（与 web_search.py 同源）
 with open("config.toml", "rb") as toml_file:
     config = tomllib.load(toml_file)
@@ -90,6 +90,7 @@ def run(params: Dict[str, Any]) -> str:
             url = r.get("url", "")
             content = r.get("raw_content", "") or ""
             content_text = content.strip()
+            content_text = 
             if len(content_text) > max_chars:
                 content_text = content_text[:max_chars] + f"...[截断，共{len(content)}字符]"
             output_lines.append(f"{i}. {url}")

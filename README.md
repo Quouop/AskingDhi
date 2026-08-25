@@ -179,7 +179,7 @@ AskingDhi/
 详见 [Challenge 清单](./Challenge_of_everyone(even_if_you_are_an_ai).md)：
 
 - **主动唤醒**：AskingDhi 能定时自主执行任务（如凌晨自动点咖啡）
-- **CLI 闪屏修复**：切换功能时的闪烁问题仍需处理
+- **CLI 闪屏修复**：终端换行导致的刷屏问题(使用强制换行解决但不完美)
 
 ## 贡献
 
@@ -189,4 +189,4 @@ AskingDhi/
 
 ## License
 
-[MIT](./LICENSE) © 2026 Gnorma, Fermi, and Fermi's father
+[MIT](./LICENSE) © 2026 Gnorma

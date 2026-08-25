@@ -1,5 +1,7 @@
 # ========== Python ==========
 __pycache__/
+HandleTool\__pycache__
+clearhtml\__pycache__
 *.py[cod]
 *$py.class
 *.so
@@ -90,3 +92,4 @@ coverage.xml
 
 # ========== 无关 ==========
 *.html
+file/

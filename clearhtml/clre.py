@@ -1,22 +1,36 @@
 import re
 import json
 import os
+import html as _html
 
 class ContentCleaner:
-    def __init__(self, config_path=None):
+    def __init__(self, config_path=None, tail_lines_count=20,
+                 start_markers=None, filter_body_noise=False):
         # 如果未指定路径，则使用脚本所在目录下的 BlockedWord.json
         if config_path is None:
             script_dir = os.path.dirname(os.path.abspath(__file__))
             config_path = os.path.join(script_dir, 'BlockedWord.json')
         self.config_path = config_path
-        
+
         # 加载关键词并编译正则（如果文件不存在或解析失败，会用内置词库）
         self.noise_regex = re.compile(
             self._get_footer_regex_str(),
             re.IGNORECASE
         )
-        self.start_markers = ["正在阅读：", "本文来源：", "核心提示："]
-        self.tail_lines_count = 20
+        self.start_markers = start_markers if start_markers is not None \
+            else ["正在阅读：", "本文来源：", "核心提示："]
+        self.tail_lines_count = tail_lines_count
+        # 是否对全文（而非仅尾部）过滤噪音行
+        self.filter_body_noise = filter_body_noise
+
+        # HTML 清洗用的正则（惰性匹配，避免跨标签误删）
+        self._script_style_re = re.compile(
+            r'<(script|style|noscript|iframe)[^>]*>.*?</\1\s*>',
+            re.IGNORECASE | re.DOTALL
+        )
+        self._comment_re = re.compile(r'<!--.*?-->', re.DOTALL)
+        self._tag_re = re.compile(r'<[^>]+>')
+        self._multi_blank_re = re.compile(r'\n{3,}')
 
     def _get_footer_regex_str(self):
         """从 JSON 配置中读取所有关键词，拼接成忽略大小写的正则"""
@@ -68,11 +82,28 @@ class ContentCleaner:
         combined = "(?i)(" + "|".join(escaped) + ")"
         return combined
 
+    def strip_html(self, html_text: str) -> str:
+        """剥离 HTML 标签，保留纯文本。
+        依次移除 script/style/noscript/iframe 块、HTML 注释、其余标签，
+        并反转 HTML 实体（如 &amp; -> &）。
+        """
+        if not html_text:
+            return ""
+        text = self._script_style_re.sub('', html_text)
+        text = self._comment_re.sub('', text)
+        text = self._tag_re.sub('', text)
+        text = _html.unescape(text)
+        # 标签内换行统一为真实换行，避免行粘连
+        text = text.replace('\r', '\n')
+        return text
+
+    def clean_html(self, html_text: str) -> str:
+        """先剥离 HTML，再做正文噪音清洗。"""
+        return self.clean(self.strip_html(html_text))
+
     def clean(self, raw_text: str) -> str:
         if not raw_text:
             return ""
-
-        lines = raw_text.split('\n')
 
         # 处理顶部：用 start_markers 截掉导航栏
         text = raw_text
@@ -83,20 +114,32 @@ class ContentCleaner:
                 break
         lines = text.split('\n')
 
-        # 如果内容太短，直接返回
+        # 全文噪音过滤：逐行剔除噪音（无视长度，仅当用户显式开启）
+        if self.filter_body_noise:
+            kept = [
+                line for line in lines
+                if not self.noise_regex.search(line.strip())
+            ]
+            clean_text = '\n'.join(kept)
+            clean_text = self._multi_blank_re.sub('\n\n', clean_text)
+            return clean_text.strip()
+
+        # 默认策略：仅过滤尾部 tail_lines_count 行（尾部噪音最密集）
+        # 内容太短则不做尾部切片，仅压缩空行
         if len(lines) <= self.tail_lines_count:
-            return text
+            return self._multi_blank_re.sub('\n\n', text).strip()
 
         body_lines = lines[:-self.tail_lines_count]
         tail_lines = lines[-self.tail_lines_count:]
 
-        # 过滤尾部噪音行
         filtered_tail = [
             line for line in tail_lines
             if not self.noise_regex.search(line.strip())
         ]
 
         clean_text = '\n'.join(body_lines + filtered_tail)
+        # 压缩 3 个及以上连续空行为单个空行
+        clean_text = self._multi_blank_re.sub('\n\n', clean_text)
         return clean_text.strip()
 
 
@@ -150,3 +193,18 @@ A- A+
     lines_after = cleaned.split('\n')
     print("===== 清洗后末尾10行 =====")
     print("\n".join(lines_after[-10:]))
+
+    # 演示：HTML 清洗（先剥离标签，再做噪音过滤）
+    test_html = """
+    <html><head><script>var x=1;</script><style>body{color:red}</style></head>
+    <body>
+      <h1>2026年中国AI发展趋势前瞻</h1>
+      <p>来源：新华网 | 2026年01月28日 11:51:09</p>
+      <p>正文内容段落 A&amp;B。</p>
+      <!-- 这是注释 -->
+      <p>京ICP备10003349号-1 版权所有</p>
+      <p>扫一扫 分享到微信</p>
+    </body></html>
+    """
+    print("\n===== HTML 清洗结果 =====")
+    print(cleaner.clean_html(test_html))

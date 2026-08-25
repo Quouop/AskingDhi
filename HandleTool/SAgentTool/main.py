@@ -298,13 +298,16 @@ def run(params: Dict[str, Any]) -> str:
         - run: 同步执行子任务,阻塞等待返回,返回结构化结果给 TaskAgent
     """
     try:
-        parameters = params.get("parameters") or {}
-        behavior = parameters.get("behavior")
+        # ParsingTool 传进来的 params 本身就是 LLM JSON 里的 parameters 字典
+        # 不要再多一层 .get("parameters")，否则所有参数都会是 None
+        if not isinstance(params, dict):
+            params = {}
+        behavior = params.get("behavior")
 
         if behavior == "run":
-            task = parameters.get("task")
-            context = parameters.get("context", "")
-            path = parameters.get("path", "")  # 继承父智能体的 allowed_path(选填)
+            task = params.get("task")
+            context = params.get("context", "")
+            path = params.get("path", "")  # 继承父智能体的 allowed_path(选填)
             if not task:
                 return "状态:Error, 缺少 task 参数"
 

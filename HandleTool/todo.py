@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 from datetime import datetime
 
-TODO_FILE = Path(__file__).parent.parent / "todo.json"
+TODO_FILE = Path(__file__).parent.parent / "date" / "todo.json"
 
 VALID_STATUSES = ('pending', 'doing', 'done', 'failed')
 

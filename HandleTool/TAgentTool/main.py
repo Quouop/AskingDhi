@@ -364,13 +364,16 @@ def run(params: Dict[str, Any]) -> str:
         - remove: 结束任务
     """
     try:
-        parameters = params.get("parameters") or {}
-        behavior = parameters.get("behavior")
+        # ParsingTool 传进来的 params 本身就是 LLM JSON 里的 parameters 字典
+        # 不要再多一层 .get("parameters")，否则所有参数都会是 None
+        if not isinstance(params, dict):
+            params = {}
+        behavior = params.get("behavior")
 
         if behavior == "add":
-            task = parameters.get("task")
-            message = parameters.get("message")
-            path = parameters.get("path")  # 新增：限定 TaskAgent 文件访问范围
+            task = params.get("task")
+            message = params.get("message")
+            path = params.get("path")  # 限定 TaskAgent 文件访问范围
             if not task:
                 return "状态:Error, 缺少 task 参数"
 
