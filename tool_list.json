@@ -163,5 +163,16 @@
         "params_example": "{\"name\": \"subagent_complete\", \"parameters\": {\"summary\": \"已读取main.py并定位核心函数\", \"progress\": \"3/5\", \"next_step\": \"需要重构异常处理分支\", \"artifacts\": [\"i:\\\\HenrryGim\\\\问渊AskingDhi\\\\main.py\"]}}",
         "note": "summary 必填(一句话完成描述)。progress 选填(完成进度如 '3/5')。next_step 选填(未完成时的下一步建议,便于 TaskAgent 派下一个 subAgent 接力)。artifacts 选填(产物文件路径列表)。此工具仅 subAgent 可用,由 SAgentTool/main.py 拦截处理,不走 ToolRouting。",
         "Accessible":["subAgent"]
+    },
+    {
+        "name": "wake",
+        "ToolPath": "HandleTool/wake.py",
+        "is_builtin": true,
+        "description": "唤醒调度工具：在指定时间点主动'唤醒'AskingDhi，并以用户身份发送指定内容，触发一轮AI响应。支持一次性/重复/无限循环三种模式，TaskAgent完成时也可以用它主动推结果给主线程。",
+        "use_case": "需要设置定时提醒、事后通知、延迟触发AI思考、TaskAgent完成后主动通知主线程、每日/每N分钟循环触发AI思考等场景。到点后系统会自动在对话循环中插入一条假用户消息并等待AI回复，无需用户手动输入。",
+        "keywords": ["唤醒", "提醒", "定时", "闹钟", "scheduler", "remind", "alarm", "延迟", "schedule", "心跳", "轮询", "通知"],
+        "params_example": "{\"name\": \"wake\", \"parameters\": {\"behavior\": \"schedule\", \"trigger_at\": \"2026-08-26 22:30:00\", \"content\": \"请提醒我去洗澡\", \"max_triggers\": 3, \"interval_minutes\": 120, \"miss_policy\": \"skip\", \"catchup_threshold_seconds\": 300}}",
+        "note": "behavior: schedule=创建唤醒 / cancel=取消整系列(id必填) / delete=物理删除(id必填) / list=列出仍在激活中的唤醒(含剩余次数) / gc=清理旧记录(keep_days选填,默认7)。schedule 必填: trigger_at('YYYY-MM-DD HH:MM'[:SS]), content; 选填: max_triggers(-1无限次/1单次/N>=2剩余次数,默认1单次), interval_minutes(仅重复模式用,间隔分钟数,默认1440=每日一次), miss_policy('skip'=默认: 关机/休眠错过就跳过不补,适合人类提醒 / 'backfill':错过的本轮一次性补齐最多100次,适合日志/自动任务), catchup_threshold_seconds(晚到多久仍视作'刚好到点'正常触发而非进入错过策略,默认300=5分钟,填0即错过1秒也触发错过策略)。语义: -1无限循环直到cancel/delete; 0拒绝创建;每次触发完毕计数减1,减到0立即从队列物理移除;错过(skip或backfill补的条目)同样消耗max_triggers配额(比如1天2次的提醒, 晚上关机, 早上开机=昨晚那次被skip, 今晚仍是下一次, 不会因为跨了24h就把昨晚的事早上补跑)。TaskAgent建议在task_complete时顺便wake schedule一个'现在+10秒'的立即通知把结果塞给MainAgent, 比MainAgent反复behavior=query轮询高效。",
+        "Accessible":["MainAgent","TaskAgent"]
     }
 ]

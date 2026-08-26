@@ -11,6 +11,10 @@ import json
 import shutil
 import unicodedata
 import re
+
+# 全局对话互斥锁：StreamDialogue 无论从哪个线程调用（语音输入/唤醒调度/...）
+# 都必须串行化执行，否则 messages / save_history 会被并发破坏。
+_dialogue_lock = threading.Lock()
 # ========== 文件存储配置 ==========
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MEMORY_DIR = os.path.join(SCRIPT_DIR, "memory")
@@ -437,6 +441,12 @@ def _flush_line(line_buffer: str) -> None:
 
 # ========== 主对话函数 ==========
 def StreamDialogue(text):
+    # 串行化：唤醒/录音/任何入口都要等，保证对话状态不被并发破坏
+    with _dialogue_lock:
+        return _stream_dialogue_impl(text)
+
+
+def _stream_dialogue_impl(text):
     global messages, full_response
     load_history()
     # 用户输入默认赋予 0.5 权重，直接落盘并追加到内存

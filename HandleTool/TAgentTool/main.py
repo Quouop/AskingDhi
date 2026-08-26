@@ -150,24 +150,125 @@ def _start_task(task_id: str):
     _update_task(task_id, status="running", start_time=time.strftime("%Y-%m-%d %H:%M:%S"))
 
 
+def _enqueue_done_notification(task_id: str, status: str, summary: str,
+                               artifacts: list, original_task: str,
+                               start_time: str, end_time: str):
+    """TaskAgent 完成/失败时，主动往唤醒队列塞一条"立即通知"的单次唤醒。
+
+    这样 MainAgent 不需要反复 behavior=query 轮询，最多 30s 后 WakePoller
+    会把这条完成报告当作"假用户消息"丢进 StreamDialogue 给 AskingDhi 读。
+    失败也通知，让 AskingDhi 知道任务挂了。
+    """
+    try:
+        # 唤醒系统是项目根目录模块，TaskAgent 自己在子目录运行时 sys.path 可能没包含项目根
+        import sys as _sys
+        import os as _os
+        _proj_root = _os.path.dirname(_os.path.dirname(_os.path.dirname(os.path.abspath(__file__))))
+        if _proj_root not in _sys.path:
+            _sys.path.insert(0, _proj_root)
+        from wake_queue import schedule_wake
+    except Exception as import_e:
+        print(f"[TaskAgent] 无法导入 wake_queue，跳过主动通知: {import_e}")
+        return None
+
+    # 构造要主动发给 AskingDhi 的内容（模拟用户口吻）
+    status_cn = "完成" if status == "completed" else f"失败({status})"
+    artifact_str = ""
+    if artifacts:
+        # 限制产物字段长度，避免塞满上下文
+        show = [str(a) for a in artifacts[:5]]
+        artifact_str = f"\n产物: {', '.join(show)}"
+        if len(artifacts) > 5:
+            artifact_str += f" 等 {len(artifacts)} 个"
+
+    summary_truncated = summary
+    if len(summary_truncated) > 500:
+        summary_truncated = summary_truncated[:500] + "\n...(截断，请用 taskagent behavior=query 拉取完整报告)"
+
+    # 触发时间 = 现在 + 10 秒（给 TaskAgent 线程收尾 + 避免和下轮 poll 的边缘时间错过）
+    from datetime import datetime, timedelta
+    trigger_at = datetime.now() + timedelta(seconds=10)
+
+    original_task_show = (original_task or "").strip()
+    if len(original_task_show) > 120:
+        original_task_show = original_task_show[:120] + "..."
+    if original_task_show:
+        task_line = f"\n原始任务: {original_task_show}"
+    else:
+        task_line = ""
+
+    content = (
+        f"[系统: TaskAgent 主动通知]\n"
+        f"任务 ID: {task_id}\n"
+        f"最终状态: 已{status_cn}\n"
+        f"开始: {start_time} | 结束: {end_time}"
+        f"{task_line}\n"
+        f"完成摘要: {summary_truncated}"
+        f"{artifact_str}\n"
+        f"请你根据任务内容与结果，给出后续处理建议或向我汇报结论。"
+    )
+
+    try:
+        wid = schedule_wake(
+            trigger_at=trigger_at,
+            content=content,
+            source=f"taskagent:{task_id}",
+            max_triggers=1,  # 单次，发完立即从队列清除
+        )
+        # 通知已排上：无论唤醒是否成功触发，手动 query 都不再重复吐这条报告给用户
+        _update_task(task_id, notified=True)
+        return wid
+    except Exception as e:
+        print(f"[TaskAgent] 写入完成通知到唤醒队列失败: {e}")
+        return None
+
+
 def _finish_task(task_id: str, summary: str, artifacts: list):
-    """标记任务为 completed，记录结束时间和完成描述"""
+    """标记任务为 completed，记录结束时间和完成描述，并主动通知 MainAgent。"""
+    end_time = time.strftime("%Y-%m-%d %H:%M:%S")
+    # 先取原始任务和开始时间（用于通知内容）
+    log = _load_log()
+    original_task = ""
+    start_time = ""
+    for r in log:
+        if r.get("task_id") == task_id:
+            original_task = r.get("task", "")
+            start_time = r.get("start_time", "")
+            break
     _update_task(
         task_id,
         status="completed",
-        end_time=time.strftime("%Y-%m-%d %H:%M:%S"),
+        end_time=end_time,
         result=summary,
         artifacts=artifacts or [],
+    )
+    # 主动通知（失败也通知，完成更通知）
+    _enqueue_done_notification(
+        task_id, "completed", summary, artifacts or [],
+        original_task, start_time, end_time,
     )
 
 
 def _fail_task(task_id: str, reason: str):
-    """标记任务为 failed，记录结束时间和失败原因"""
+    """标记任务为 failed，记录结束时间和失败原因，并主动通知 MainAgent。"""
+    end_time = time.strftime("%Y-%m-%d %H:%M:%S")
+    log = _load_log()
+    original_task = ""
+    start_time = ""
+    for r in log:
+        if r.get("task_id") == task_id:
+            original_task = r.get("task", "")
+            start_time = r.get("start_time", "")
+            break
     _update_task(
         task_id,
         status="failed",
-        end_time=time.strftime("%Y-%m-%d %H:%M:%S"),
+        end_time=end_time,
         result=reason,
+    )
+    _enqueue_done_notification(
+        task_id, "failed", reason, [],
+        original_task, start_time, end_time,
     )
 
 

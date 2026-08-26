@@ -1,8 +1,18 @@
 from pynput import keyboard
 import threading
+import time
 import TouchFile as tf
 from cleanup import clean_project
 import subprocess
+import sys
+import os
+
+_PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
+
+# 唤醒线程停止信号（ESC 退出时 set）。互斥串行由 Call_Llm._dialogue_lock 统一处理。
+_wake_stop_event = threading.Event()
 # 全局变量
 recording_thread = None
 stop_event = None
@@ -217,15 +227,93 @@ def on_release(key):
         stop_event = None
     # 按 ESC 退出监听
     if key == keyboard.Key.esc:
+        _wake_stop_event.set()
         return False
+
+
+def _wake_poller_loop():
+    """后台线程：每 30 秒扫一次唤醒队列，到点就调 StreamDialogue。
+
+    - 真正的并发串行靠 Call_Llm._dialogue_lock（录音线程和唤醒线程都进这把锁）。
+    - pop_due_wakes 拿到就标记 fired，不会漏触发也不会重复。
+    - 如果对话正好被别的线程占着，StreamDialogue 会阻塞等待锁释放，然后排队执行。
+    """
+    from wake_queue import pop_due_wakes, gc_wakes
+
+    POLL_INTERVAL = 30  # 秒
+    GC_EVERY = 120      # 每 120 轮≈1小时 gc 一次
+    loop_count = 0
+
+    # 启动先做一次快速检查（1秒后），后续按间隔
+    time.sleep(1.0)
+    while not _wake_stop_event.is_set():
+        loop_count += 1
+        try:
+            due = pop_due_wakes()
+            for item in due:
+                if _wake_stop_event.is_set():
+                    break
+                content = item.get("content") or ""
+                if not content:
+                    continue
+                wid = item.get("id", "?")
+                trigger_src = item.get("source", "wake")
+                print(
+                    f"\n\033[93m⏰ 唤醒触发 [{wid}] (来源:{trigger_src})"
+                    f" -> 发送内容: {content[:60]}\033[0m"
+                )
+                try:
+                    from Call_Llm import StreamDialogue
+                    StreamDialogue(content)
+                except Exception as inner_e:
+                    print(f"\033[91m❌ 唤醒对话执行异常: {inner_e}\033[0m")
+                # 重新打印就绪提示，让用户知道又可以语音输入了
+                print(
+                    "\n\033[90m[问渊AskingDhi] 唤醒响应完毕，"
+                    "继续待命：按住 Alt 语音输入，ESC 退出。\033[0m"
+                )
+
+            # 定期清理老记录
+            if loop_count % GC_EVERY == 0:
+                try:
+                    gc_wakes(keep_days=7)
+                except Exception:
+                    pass
+        except Exception as e:
+            print(f"\033[91m⚠️ 唤醒轮询异常: {e}\033[0m")
+
+        # 分片 sleep，保证 stop_event 能快速响应退出
+        slept = 0
+        while slept < POLL_INTERVAL and not _wake_stop_event.is_set():
+            chunk = min(1.0, POLL_INTERVAL - slept)
+            time.sleep(chunk)
+            slept += chunk
+
 
 if __name__ == "__main__":
     print("[问渊AskingDhi] 系统已就绪。按住 Alt 键进行语音输入，按 ESC 键退出监听。")
+
+    # 启动唤醒轮询线程（daemon=True，主进程退出时自动结束）
+    wake_poller_thread = threading.Thread(
+        target=_wake_poller_loop,
+        name="AskingDhi-WakePoller",
+        daemon=True,
+    )
+    wake_poller_thread.start()
+    print("[问渊AskingDhi] ⏰ 唤醒调度已启动（每30秒检查一次，可用 wake 工具提交唤醒）")
+
     # 启动监听（非阻塞）
     listener = keyboard.Listener(on_press=on_press, on_release=on_release)
     listener.start()
     listener.join()  # 阻塞主线程直到监听结束
-    
+
+    # 等待唤醒线程优雅退出（最多 2s）
+    _wake_stop_event.set()
+    try:
+        wake_poller_thread.join(timeout=2.0)
+    except Exception:
+        pass
+
     # 退出监听后触发清理协议
     print("\n[问渊AskingDhi] 随时为您待命先生")
     clean_project()
