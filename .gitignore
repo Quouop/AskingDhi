@@ -47,6 +47,12 @@ HandleTool/logs/
 
 # ========== 模型文件(体积大,不入库,用户自行下载) ==========
 HandleTool/model/
+# cam++ 声纹模型缓存(modelscope下载的权重,体积大)
+HandleTool/models/models/
+HandleTool/models/.lock/
+HandleTool/models/credentials/
+# 声纹库(用户个人数据,运行时自动生成)
+HandleTool/models/speaker_voiceprint.json
 
 # ========== 项目根目录测试用 py 文件(本地测试,不入库) ==========
 # 根目录下纯数字/空名命名的临时测试文件(如 .py / 1.py / 2.py / test_*.py)

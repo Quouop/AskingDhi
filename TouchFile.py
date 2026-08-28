@@ -52,32 +52,31 @@ class CaptureTimestampAndUserAudioSaveFilesTranscribeToText:
         wf.close()
         time.sleep(0.1)
         print(f"录音已保存，文件大小：{os.path.getsize(output_filename)} bytes")
-        # ========== ASR识别 ==========
-        sentence = ""
+        # ========== ASR识别（返回句子列表，含时间戳） ==========
+        sentences = []
         try:
-            result = RecognizeLocalFile(output_filename)
-
-            if isinstance(result, dict):
-                # 优先取顶层 text
-                sentence = result.get("text", "")
-                # 如果顶层 text 为空或不存在，尝试从 words 拼接
-                if not sentence and "words" in result:
-                    words_list = result["words"]
-                    # 拼接每个 word 的 text + punctuation
-                    sentence = ''.join(w.get("text", "") + w.get("punctuation", "") for w in words_list)
-            elif isinstance(result, list):
-                sentence = result[0] if result else ""
-            elif isinstance(result, str):
-                sentence = result
-            else:
-                sentence = ""
+            sentences = RecognizeLocalFile(output_filename)
         except Exception as e:
             print(f"ASR识别异常: {e}")
-            sentence = ""
-        if isinstance(sentence, dict):
-            sentence = sentence.get("text", "")
-        if sentence and sentence.strip():
-            print("识别结果：", sentence)
-            StreamDialogue(sentence)
-        else:
+            sentences = []
+        if not sentences:
             print("识别结果为空，不触发对话")
+            return
+
+        # ========== 说话人声纹识别 ==========
+        # 按每句时间戳切wav片段 → cam++提取声纹 → 与声纹库比对 → 新人自动命名Speaker_N
+        # 失败时退化为"未知: 内容"，不阻塞对话
+        annotated = []
+        try:
+            from HandleTool.speaker_voiceprint import annotate_sentences
+            annotated = annotate_sentences(output_filename, sentences)
+        except Exception as e:
+            print(f"声纹识别异常(退化为未知说话人): {e}")
+            annotated = [{"speaker": "未知", "text": s["text"],
+                         "begin_ms": s.get("begin_ms", 0), "end_ms": s.get("end_ms", 0)}
+                        for s in sentences]
+
+        # 拼成 "人物: 内容\n人物: 内容" 喂给 StreamDialogue，LLM 即可知道谁说了什么
+        dialogue_text = "\n".join(f"{a['speaker']}: {a['text']}" for a in annotated)
+        print("识别结果：", dialogue_text)
+        StreamDialogue(dialogue_text)

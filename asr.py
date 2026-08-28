@@ -1,9 +1,10 @@
 from http import HTTPStatus
 import dashscope
-from dashscope.audio.asr import Recognition
+from dashscope.audio.asr import Recognition, RecognitionCallback
 import os
 import wave
 import struct
+import threading
 
 dashscope.api_key = os.getenv("DASHSCOPE_API_KEY")
 
@@ -35,7 +36,52 @@ def calc_audio_rms(wf: wave.Wave_read) -> float:
     return rms
 
 
+class _SentenceCollector(RecognitionCallback):
+    """收集 ASR 识别出的所有句子（含时间戳）。
+
+    paraformer-realtime-v2 的 Recognition 在文件模式下会逐句回调，
+    每次 sentence_end=True 时 get_sentence() 返回该句的完整 dict：
+      {text, begin_time(毫秒), end_time(毫秒), words:[{text,begin_time,end_time,punctuation}]}
+    本类把所有句子收集成统一列表，供上层按时间戳切片做声纹比对。
+    """
+    def __init__(self):
+        self.sentences = []
+        self._lock = threading.Lock()
+
+    def on_event(self, result):
+        try:
+            if not result.is_sentence_end():
+                return
+            sent = result.get_sentence()
+            if isinstance(sent, dict):
+                text = sent.get("text", "") or ""
+                begin = sent.get("begin_time", 0) or 0
+                end = sent.get("end_time", 0) or 0
+            elif isinstance(sent, str):
+                text, begin, end = sent, 0, 0
+            else:
+                text, begin, end = str(sent), 0, 0
+            if text and text.strip():
+                with self._lock:
+                    self.sentences.append({
+                        "text": text.strip(),
+                        "begin_ms": int(begin),
+                        "end_ms": int(end),
+                    })
+        except Exception as e:
+            print(f"[ASR callback] 解析句子异常: {e}")
+
+    def on_complete(self):
+        pass
+
+
 def RecognizeLocalFile(file_path):
+    """识别本地 wav，返回句子列表 [{text, begin_ms, end_ms}, ...]。
+
+    - 保留原有前置过滤：时长过短 / 音量过低 直接返回空列表
+    - 用 callback 收集每句的 text + begin_ms + end_ms（毫秒）
+    - 如果 callback 收集为空，兜底从最终 result 取单句
+    """
     try:
         with wave.open(file_path, 'rb') as wf:
             channels = wf.getnchannels()
@@ -50,37 +96,46 @@ def RecognizeLocalFile(file_path):
             duration = nframes / framerate
             print(f"音频时长: {duration:.2f} s")
 
-            # 条件1：时长过短，直接跳过ASR
             if duration < MIN_DURATION_SEC:
                 print(f"[前置过滤]音频过短 {duration:.2f}s < {MIN_DURATION_SEC}s，跳过ASR调用")
-                return ""
+                return []
 
-            # 只处理单声道16bit音频（你的录音输出）
             if channels != 1 or sampwidth != 2:
                 print("[前置过滤]格式不符合预期，直接送入ASR")
             else:
                 rms = calc_audio_rms(wf)
                 print(f"音频RMS音量：{rms:.1f}")
-                # 条件2：音量太低，几乎静音，跳过
                 if rms < RMS_THRESHOLD:
                     print(f"[前置过滤]音量过低 RMS={rms:.1f} < {RMS_THRESHOLD}，跳过ASR调用")
-                    return ""
+                    return []
 
-        # 只有通过全部前置检查，才真正调用ASR接口
+        collector = _SentenceCollector()
         recognition = Recognition(
             model='paraformer-realtime-v2',
             format='wav',
             sample_rate=16000,
-            callback=None,
+            callback=collector,
             max_sentence_silence=6000
         )
         result = recognition.call(file_path)
         if result.status_code == HTTPStatus.OK:
+            if collector.sentences:
+                print(f"[ASR] 识别到 {len(collector.sentences)} 个句子")
+                return collector.sentences
+            # 兜底：callback 没收到句子，从最终 result 取
             text = result.get_sentence()
-            return text if text else ""
+            if isinstance(text, dict):
+                t = text.get("text", "")
+                if t and t.strip():
+                    return [{"text": t.strip(),
+                             "begin_ms": int(text.get("begin_time", 0) or 0),
+                             "end_ms": int(text.get("end_time", 0) or 0)}]
+            elif isinstance(text, str) and text.strip():
+                return [{"text": text.strip(), "begin_ms": 0, "end_ms": 0}]
+            return []
         else:
             print(f'ASR接口报错: {result.message}')
-            return ""
+            return []
     except Exception as e:
         print(f"ASR调用异常：{str(e)}")
-        return ""
+        return []
